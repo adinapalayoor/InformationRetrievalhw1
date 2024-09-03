@@ -8,25 +8,31 @@
 
 # ########################################
 # first, create a student object
+
 # ########################################
 
 import cs547
 import PorterStemmer
+from cs547 import Student
+import glob
+import os
+import re
 
-MY_NAME = "Your Name"
-MY_ANUM  = 0000000 # put your WPI numerical ID here
-MY_EMAIL = "somewhere@wpi.edu"
+
+
+MY_NAME = "Adina Palayoor"
+MY_ANUM  = 638595108 # put your WPI numerical ID here
+MY_EMAIL = "aspalayoor@wpi.edu"
 
 # the COLLABORATORS list contains tuples of 2 items, the name of the helper
 # and their contribution to your homework
 COLLABORATORS = [ 
-    ('Bob Lee', 'helped me learn Python'),  
-    ('Brown Cheng', 'gave me coffee during office hours'),
+    ('None', 'None')
     ]
 
 # Set the I_AGREE_HONOR_CODE to True if you agree with the following statement
 # "I do not lie, cheat or steal, or tolerate those who do."
-I_AGREE_HONOR_CODE = False
+I_AGREE_HONOR_CODE = True
 
 # this defines the student object
 student = cs547.Student(
@@ -36,7 +42,6 @@ student = cs547.Student(
     COLLABORATORS,
     I_AGREE_HONOR_CODE
     )
-
 
 # ########################################
 # now, write some code
@@ -76,8 +81,30 @@ class Index(object):
     #     directory of text files to be indexed
     def index_dir(self, base_path):
         num_files_indexed = 0
-        # PUT YOUR CODE HERE
+        for file_path in glob.glob(os.path.join(base_path, '*.txt')):
+            with open(file_path, 'r') as file:
+                content = file.read()
+                tokens = self.tokenize(content)
+                stemmed_tokens = self.stemming(tokens)
+
+                print(f"Indexing file: {file_path}")
+                print(f"Tokens: {tokens}")
+                print(f"Stemmed Tokens: {stemmed_tokens}")
+                
+                self._documents.append(os.path.basename(file_path))
+                doc_id = len(self._documents) - 1
+                
+                for token in stemmed_tokens:
+                    if token in self._inverted_index:
+                        if doc_id not in self._inverted_index[token]:
+                            self._inverted_index[token].append(doc_id)
+                    else:
+                        self._inverted_index[token] = [doc_id]
+            
+            num_files_indexed += 1
+        
         return num_files_indexed
+
 
     # tokenize( text )
     # purpose: convert a string of terms into a list of tokens.        
@@ -88,8 +115,9 @@ class Index(object):
     # parameters:
     #   text - a string of terms
     def tokenize(self, text):
-        tokens = []
-        # PUT YOUR CODE HERE
+        text = text.lower()
+        text = re.sub(r'[^a-z0-9]', ' ', text)
+        tokens = text.split()
         return tokens
 
     # purpose: convert a string of terms into a list of tokens.        
@@ -100,7 +128,10 @@ class Index(object):
     #   tokens - a list of tokens
     def stemming(self, tokens):
         stemmed_tokens = []
-        # PUT YOUR CODE HERE
+        stemmer = PorterStemmer.PorterStemmer()
+        for token in tokens:
+            stemmed_token = stemmer.stem(token, 0, len(token) - 1)
+            stemmed_tokens.append(stemmed_token)
         return stemmed_tokens
     
     # boolean_search( text )
@@ -113,9 +144,31 @@ class Index(object):
     # parameters:
     #   text - a string of terms
     def boolean_search(self, text):
-        results = []
-        # PUT YOUR CODE HERE
-        return results
+        tokens = self.tokenize(text)
+        stemmed_tokens = self.stemming(tokens)
+        
+        if len(stemmed_tokens) == 1:
+            term = stemmed_tokens[0]
+            if term in self._inverted_index:
+                return [self._documents[doc_id] for doc_id in self._inverted_index[term]]
+            else:
+                return []
+        
+        elif len(stemmed_tokens) == 3:
+            term1, operator, term2 = stemmed_tokens
+            if operator == "and":
+                if term1 in self._inverted_index and term2 in self._inverted_index:
+                    result_docs = set(self._inverted_index[term1]) & set(self._inverted_index[term2])
+                    return [self._documents[doc_id] for doc_id in result_docs]
+            elif operator == "or":
+                result_docs = set()
+                if term1 in self._inverted_index:
+                    result_docs |= set(self._inverted_index[term1])
+                if term2 in self._inverted_index:
+                    result_docs |= set(self._inverted_index[term2])
+                return [self._documents[doc_id] for doc_id in result_docs]
+        
+        return []
     
 
 # now, we'll define our main function which actually starts the indexer and
@@ -124,7 +177,7 @@ def main(args):
     print(student)
     index = Index()
     print("starting indexer")
-    num_files = index.index_dir('data/')
+    num_files = index.index_dir('\Information Retrieval\hw1\data')
     print("indexed %d files" % num_files)
     for term in ('football', 'mike', 'sherman', 'mike OR sherman', 'mike AND sherman'):
         results = index.boolean_search(term)
