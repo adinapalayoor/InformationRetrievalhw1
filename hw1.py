@@ -80,30 +80,47 @@ class Index(object):
     #   base_path - a string containing a relative or direct path to a
     #     directory of text files to be indexed
     def index_dir(self, base_path):
-        num_files_indexed = 0
-        for file_path in glob.glob(os.path.join(base_path, '*.txt')):
-            with open(file_path, 'r') as file:
-                content = file.read()
-                tokens = self.tokenize(content)
-                stemmed_tokens = self.stemming(tokens)
-
-                print(f"Indexing file: {file_path}")
-                print(f"Tokens: {tokens}")
-                print(f"Stemmed Tokens: {stemmed_tokens}")
-                
-                self._documents.append(os.path.basename(file_path))
-                doc_id = len(self._documents) - 1
-                
-                for token in stemmed_tokens:
-                    if token in self._inverted_index:
-                        if doc_id not in self._inverted_index[token]:
-                            self._inverted_index[token].append(doc_id)
-                    else:
-                        self._inverted_index[token] = [doc_id]
-            
-            num_files_indexed += 1
+    # Check if the directory exists first
+        if not os.path.exists(base_path):
+            print(f"Directory does not exist: {base_path}")
+            return 0
         
+        print(f"Indexing directory: {base_path}")
+        num_files_indexed = 0
+        
+        # Check if any files are being found
+        file_paths = glob.glob(os.path.join(base_path, '*.txt'))
+        if not file_paths:
+            print("No files found in the directory. Please check the path or the file extension.")
+            return 0
+        
+        for file_path in file_paths:
+            print(f"Processing file: {file_path}")
+            try:
+                # Open the file with UTF-8 encoding to avoid encoding issues
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    
+                    tokens = self.tokenize(content)
+                    
+                    stemmed_tokens = self.stemming(tokens)
+                    
+                    self._documents.append(os.path.basename(file_path))
+                    doc_id = len(self._documents) - 1
+                    
+                    for token in stemmed_tokens:
+                        if token in self._inverted_index:
+                            if doc_id not in self._inverted_index[token]:
+                                self._inverted_index[token].append(doc_id)
+                        else:
+                            self._inverted_index[token] = [doc_id]
+                    
+                    num_files_indexed += 1
+            except UnicodeDecodeError as e:
+                print(f"Error reading file {file_path}: {e}")
+            
         return num_files_indexed
+
 
 
     # tokenize( text )
@@ -115,6 +132,7 @@ class Index(object):
     # parameters:
     #   text - a string of terms
     def tokenize(self, text):
+
         text = text.lower()
         text = re.sub(r'[^a-z0-9]', ' ', text)
         tokens = text.split()
@@ -177,7 +195,9 @@ def main(args):
     print(student)
     index = Index()
     print("starting indexer")
-    num_files = index.index_dir('\Information Retrieval\hw1\data')
+    #print(f"Indexing directory: {base_path}")
+    num_files = index.index_dir('C:/Users/adina_l1uzsjt/OneDrive - Worcester Polytechnic Institute (wpi.edu)/Information Retrieval/hw1/data')
+    print("indexer finished")
     print("indexed %d files" % num_files)
     for term in ('football', 'mike', 'sherman', 'mike OR sherman', 'mike AND sherman'):
         results = index.boolean_search(term)
