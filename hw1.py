@@ -5,12 +5,6 @@
 #   Index - a class which encapsulates the necessary logic for
 #     indexing and searching a corpus of text documents
 
-
-# ########################################
-# first, create a student object
-
-# ########################################
-
 import cs547
 import PorterStemmer
 from cs547 import Student
@@ -18,10 +12,8 @@ import glob
 import os
 import re
 
-
-
 MY_NAME = "Adina Palayoor"
-MY_ANUM  = 638595108 # put your WPI numerical ID here
+MY_ANUM  = 638595108
 MY_EMAIL = "aspalayoor@wpi.edu"
 
 # the COLLABORATORS list contains tuples of 2 items, the name of the helper
@@ -43,9 +35,6 @@ student = cs547.Student(
     I_AGREE_HONOR_CODE
     )
 
-# ########################################
-# now, write some code
-# ########################################
 
 # our index class definition will hold all logic necessary to create and search
 # an index created from a directory of text files 
@@ -80,24 +69,16 @@ class Index(object):
     #   base_path - a string containing a relative or direct path to a
     #     directory of text files to be indexed
     def index_dir(self, base_path):
-    # Check if the directory exists first
-        if not os.path.exists(base_path):
-            print(f"Directory does not exist: {base_path}")
-            return 0
-        
+ 
         print(f"Indexing directory: {base_path}")
         num_files_indexed = 0
         
         # Check if any files are being found
         file_paths = glob.glob(os.path.join(base_path, '*.txt'))
-        if not file_paths:
-            print("No files found in the directory. Please check the path or the file extension.")
-            return 0
-        
         for file_path in file_paths:
             print(f"Processing file: {file_path}")
             try:
-                # Open the file with UTF-8 encoding to avoid encoding issues
+                # opening with utf-8 encoding
                 with open(file_path, 'r', encoding='utf-8') as file:
                     content = file.read()
                     
@@ -116,6 +97,7 @@ class Index(object):
                             self._inverted_index[token] = [doc_id]
                     
                     num_files_indexed += 1
+                    #catching UnicodeDecodeError
             except UnicodeDecodeError as e:
                 print(f"Error reading file {file_path}: {e}")
             
@@ -164,20 +146,22 @@ class Index(object):
     def boolean_search(self, text):
         tokens = self.tokenize(text)
         stemmed_tokens = self.stemming(tokens)
-        
+        # if the search term is a single term
         if len(stemmed_tokens) == 1:
             term = stemmed_tokens[0]
             if term in self._inverted_index:
                 return [self._documents[doc_id] for doc_id in self._inverted_index[term]]
             else:
                 return []
-        
+        # if the search term contains 3 terms
         elif len(stemmed_tokens) == 3:
             term1, operator, term2 = stemmed_tokens
+            # if the operator is "and"
             if operator == "and":
                 if term1 in self._inverted_index and term2 in self._inverted_index:
                     result_docs = set(self._inverted_index[term1]) & set(self._inverted_index[term2])
                     return [self._documents[doc_id] for doc_id in result_docs]
+            # if the operator is "or"
             elif operator == "or":
                 result_docs = set()
                 if term1 in self._inverted_index:
@@ -195,11 +179,12 @@ def main(args):
     print(student)
     index = Index()
     print("starting indexer")
-    #print(f"Indexing directory: {base_path}")
+
     num_files = index.index_dir('C:/Users/adina_l1uzsjt/OneDrive - Worcester Polytechnic Institute (wpi.edu)/Information Retrieval/hw1/data')
+    
     print("indexer finished")
     print("indexed %d files" % num_files)
-    for term in ('football', 'mike', 'sherman', 'mike OR sherman', 'mike AND sherman'):
+    for term in ('football', 'mike', 'sherman', 'mike OR sherman', 'mike AND sherman','adina','aidan','adina OR aidan','adina AND aidan','homework'):
         results = index.boolean_search(term)
         print("searching: %s -- results: %s" % (term, ", ".join(results)))
 
